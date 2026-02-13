@@ -1,0 +1,3 @@
+[workspace]
+members = ["trs", "trs-macro", "tests"]
+resolver = "2"
