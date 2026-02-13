@@ -1,9 +1,8 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
-    Ident, LitStr, Result,
     parse::{Parse, ParseStream},
-    parse_macro_input,
+    parse_macro_input, Ident, LitStr, Result,
 };
 
 #[proc_macro]
@@ -40,7 +39,7 @@ impl Parse for Element {
     fn parse(input: ParseStream) -> Result<Self> {
         let name: Ident = input.parse()?;
 
-        let name_str = name.span().unwrap().source_text().unwrap();
+        let name_str = name.to_string();
         if !VALID_ELEMENTS.contains(&name_str.as_str()) {
             panic!("{} is not a valid tag", name_str);
         }
@@ -92,12 +91,12 @@ impl TrsCall {
 
 impl Element {
     fn render(&self) -> proc_macro2::TokenStream {
-        let tag = self.name.to_string();
+        let tag_ident = Ident::new(&self.name.to_string(), self.name.span());
         let children: Vec<_> = self.children.iter().map(|c| c.render()).collect();
 
         quote! {
             ::trs::TemplateNode::Element {
-                tag: #tag,
+                tag: ::trs::elements::ElementTag::#tag_ident,
                 children: vec![#(#children),*],
             }
         }
@@ -110,9 +109,7 @@ impl Node {
             Node::Element(el) => el.render(),
             Node::Text(lit) => {
                 quote! {
-                    ::trs::TemplateNode::Text {
-                        text: #lit.to_string(),
-                    }
+                    ::trs::TemplateNode::Literal(#lit.to_string())
                 }
             }
         }

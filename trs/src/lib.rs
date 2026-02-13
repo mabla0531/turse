@@ -5,12 +5,10 @@ pub trait TurseElement {
 #[derive(Debug, Clone, PartialEq)]
 pub enum TemplateNode {
     Element {
-        tag: &'static str,
+        tag: elements::ElementTag,
         children: Vec<TemplateNode>,
     },
-    Text {
-        text: String,
-    },
+    Literal(String),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -31,6 +29,12 @@ impl VNode {
 }
 
 pub mod elements {
+    #[derive(Debug, Clone, PartialEq)]
+    pub enum ElementTag {
+        block,
+        text,
+    }
+
     use super::TurseElement;
     pub struct block;
     impl TurseElement for block {
