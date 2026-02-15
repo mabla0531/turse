@@ -3,9 +3,8 @@ use std::collections::HashMap;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
-    Ident, LitBool, LitFloat, LitInt, LitStr, Result, Token,
     parse::{Parse, ParseStream},
-    parse_macro_input,
+    parse_macro_input, token, Ident, LitBool, LitFloat, LitInt, LitStr, Result, Token,
 };
 use trs::AttrValue;
 
@@ -37,6 +36,7 @@ struct Node {
     attrs: HashMap<String, AttrValueExpr>,
     children: Vec<Node>,
     text: Option<String>,
+    expr_children: Vec<proc_macro2::TokenStream>,
 }
 
 const VALID_ELEMENTS: [&str; 2] = ["block", "text"];
@@ -49,6 +49,7 @@ impl Parse for Node {
                 attrs: HashMap::new(),
                 children: Vec::new(),
                 text: Some(input.parse::<LitStr>()?.value()),
+                expr_children: Vec::new(),
             });
         }
 
@@ -64,6 +65,7 @@ impl Parse for Node {
 
         let mut attrs = HashMap::new();
         let mut children = Vec::new();
+        let mut expr_children = Vec::new();
 
         while !content.is_empty() {
             if content.peek(Ident) && content.peek2(Token![:]) {
@@ -72,6 +74,9 @@ impl Parse for Node {
                 let attr_value: AttrValueExpr = content.parse()?;
                 attrs.insert(attr_name.to_string(), attr_value);
                 let _ = content.parse::<Token![,]>();
+            } else if content.peek(token::Brace) {
+                let expr: syn::Expr = content.parse()?;
+                expr_children.push(quote! { #expr });
             } else {
                 children.push(content.parse()?);
             }
@@ -82,6 +87,7 @@ impl Parse for Node {
             attrs,
             children,
             text: None,
+            expr_children,
         })
     }
 }
@@ -108,7 +114,7 @@ impl Parse for AttrValueExpr {
         } else if input.peek(LitBool) {
             let b: LitBool = input.parse()?;
             Ok(AttrValueExpr::Literal(AttrValue::Bool(b.value())))
-        } else if input.peek(Token![if]) || input.peek(Token![match]) {
+        } else if input.peek(token::Brace) || input.peek(Token![if]) || input.peek(Token![match]) {
             let expr: syn::Expr = input.parse()?;
             let expr_tokens = quote! { #expr };
             Ok(AttrValueExpr::Expr(expr_tokens))
@@ -147,7 +153,7 @@ impl AttrValueExpr {
         match self {
             AttrValueExpr::Literal(lit) => quote! { #lit },
             AttrValueExpr::Expr(expr) => {
-                quote! { ::trs::IntoAttrValue::into_attr_value(#expr) }
+                quote! { ::trs::AttrValue::Reactive(std::rc::Rc::new(move || ::trs::IntoAttrValue::into_attr_value(#expr))) }
             }
         }
     }
@@ -164,6 +170,13 @@ impl Node {
 
         let tag = &self.tag;
         let children: Vec<_> = self.children.iter().map(|c| c.render()).collect();
+        let expr_children: Vec<_> = self
+            .expr_children
+            .iter()
+            .map(|e| quote! { ::trs::TemplateNode::ReactiveChild(std::rc::Rc::new(move || -> ::trs::TemplateNode { #e.into() })) })
+            .collect();
+
+        let all_children = [children, expr_children].concat();
 
         let mut attrs_expr = quote! {
             std::collections::HashMap::new()
@@ -183,7 +196,7 @@ impl Node {
             ::trs::TemplateNode::Element {
                 tag: #tag.to_string(),
                 attrs: #attrs_expr,
-                children: vec![#(#children),*],
+                children: vec![#(#all_children),*],
             }
         }
     }
