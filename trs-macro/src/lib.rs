@@ -135,14 +135,14 @@ impl TrsCall {
     fn render(&self) -> proc_macro2::TokenStream {
         match &self.root {
             Some(node) => {
-                let template = node.render();
+                let inner = node.render();
                 quote! {
-                    ::trs::VNode::new(#template)
+                    ::trs::Element::new(#inner)
                 }
             }
             None => {
                 quote! {
-                    ::trs::VNode::empty()
+                    ::trs::Element::empty()
                 }
             }
         }

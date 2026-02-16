@@ -3,6 +3,8 @@ name = "tests"
 version = "0.1.0"
 edition = "2024"
 
+publish = false
+
 [dependencies]
-trs = { path = "../trs" }
+turse = { path = "../turse" }
 trs-macro = { path = "../trs-macro" }

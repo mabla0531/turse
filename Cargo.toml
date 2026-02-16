@@ -1,3 +1,3 @@
 [workspace]
-members = ["trs", "trs-macro", "tests"]
+members = ["turse", "trs-macro", "tests"]
 resolver = "2"

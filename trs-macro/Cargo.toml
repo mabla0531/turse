@@ -10,4 +10,4 @@ proc-macro = true
 proc-macro2 = "1.0.106"
 quote = "1.0.44"
 syn = "2.0.115"
-trs = { path = "../trs" }
+turse = { path = "../turse" }

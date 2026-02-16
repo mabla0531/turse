@@ -1,7 +1,8 @@
 use std::{collections::HashMap, fmt::Display};
 
 pub trait TurseElement {
-    const TAG_NAME: &'static str;
+    const TAG: &'static str;
+    const ATTRIBUTES: &'static [&'static str];
 }
 
 pub enum Node {
@@ -14,23 +15,23 @@ pub enum Node {
 }
 
 pub trait IntoNode {
-    fn into_template_node(self) -> Node;
+    fn into_inner_node(self) -> Node;
 }
 
 impl IntoNode for String {
-    fn into_template_node(self) -> Node {
+    fn into_inner_node(self) -> Node {
         Node::Body(self)
     }
 }
 
 impl IntoNode for &str {
-    fn into_template_node(self) -> Node {
+    fn into_inner_node(self) -> Node {
         Node::Body(self.to_string())
     }
 }
 
 impl IntoNode for Node {
-    fn into_template_node(self) -> Node {
+    fn into_inner_node(self) -> Node {
         self
     }
 }
@@ -55,7 +56,7 @@ where
         Node::Element {
             tag: "fragment".to_string(),
             attrs: HashMap::new(),
-            children: vec.into_iter().map(|t| t.into_template_node()).collect(),
+            children: vec.into_iter().map(|t| t.into_inner_node()).collect(),
         }
     }
 }
@@ -256,45 +257,45 @@ impl From<&str> for AttrValue {
 
 #[cfg_attr(debug_assertions, derive(Debug, PartialEq))]
 #[derive(Clone)]
-pub struct VNode {
-    pub template: Option<Node>,
+pub struct Element {
+    pub inner: Option<Node>,
 }
 
-impl VNode {
-    pub fn new(template: Node) -> Self {
-        Self {
-            template: Some(template),
-        }
+impl Element {
+    pub fn new(inner: Node) -> Self {
+        Self { inner: Some(inner) }
     }
 
     pub fn empty() -> Self {
-        Self { template: None }
+        Self { inner: None }
     }
 }
 
+#[allow(non_camel_case_types)]
+#[allow(non_upper_case_globals)]
 pub mod elements {
     use super::TurseElement;
 
     pub struct block;
     impl TurseElement for block {
-        const TAG_NAME: &'static str = "block";
+        const TAG: &'static str = "block";
+        const ATTRIBUTES: &'static [&'static str] = &["width"];
     }
-    impl block {
-        const width: &'static str = "width";
-    }
-
     pub struct text;
     impl TurseElement for text {
-        const TAG_NAME: &'static str = "text";
+        const TAG: &'static str = "text";
+        const ATTRIBUTES: &'static [&'static str] = &["width"];
     }
 
     pub struct input;
     impl TurseElement for input {
-        const TAG_NAME: &'static str = "input";
+        const TAG: &'static str = "input";
+        const ATTRIBUTES: &'static [&'static str] = &["width"];
     }
 
     pub struct dropdown;
     impl TurseElement for dropdown {
-        const TAG_NAME: &'static str = "dropdown";
+        const TAG: &'static str = "dropdown";
+        const ATTRIBUTES: &'static [&'static str] = &["width"];
     }
 }

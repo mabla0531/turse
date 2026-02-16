@@ -18,16 +18,16 @@ mod tests {
     }
 
     #[test]
-    fn test_empty_template() {
+    fn test_empty_inner() {
         let document = trs! {};
-        assert!(document.template.is_none());
+        assert!(document.inner.is_none());
     }
 
     #[test]
     fn test_text_node() {
         let document = trs! { "hello world" };
-        let template = document.template.unwrap();
-        match template {
+        let inner = document.inner.unwrap();
+        match inner {
             Node::Body(text) => assert_eq!(text, "hello world"),
             _ => panic!("expected Body node"),
         }
@@ -41,8 +41,8 @@ mod tests {
                 class: "container"
             }
         };
-        let template = document.template.unwrap();
-        match template {
+        let inner = document.inner.unwrap();
+        match inner {
             Node::Element {
                 tag,
                 attrs,
@@ -72,8 +72,8 @@ mod tests {
                 }
             }
         };
-        let template = document.template.unwrap();
-        match template {
+        let inner = document.inner.unwrap();
+        match inner {
             Node::Element { tag, children, .. } => {
                 assert_eq!(tag, "block");
                 assert_eq!(children.len(), 1);
@@ -104,8 +104,8 @@ mod tests {
                 max: 100
             }
         };
-        let template = document.template.unwrap();
-        match template {
+        let inner = document.inner.unwrap();
+        match inner {
             Node::Element { attrs, .. } => {
                 assert_eq!(attrs.get("value"), Some(&AttrValue::Int(42)));
                 assert_eq!(attrs.get("max"), Some(&AttrValue::Int(100)));
@@ -122,8 +122,8 @@ mod tests {
                 discount: 0.5
             }
         };
-        let template = document.template.unwrap();
-        match template {
+        let inner = document.inner.unwrap();
+        match inner {
             Node::Element { attrs, .. } => {
                 assert_eq!(attrs.get("price"), Some(&AttrValue::Float(19.99)));
                 assert_eq!(attrs.get("discount"), Some(&AttrValue::Float(0.5)));
@@ -140,8 +140,8 @@ mod tests {
                 readonly: false
             }
         };
-        let template = document.template.unwrap();
-        match template {
+        let inner = document.inner.unwrap();
+        match inner {
             Node::Element { attrs, .. } => {
                 assert_eq!(attrs.get("disabled"), Some(&AttrValue::Bool(true)));
                 assert_eq!(attrs.get("readonly"), Some(&AttrValue::Bool(false)));
@@ -157,8 +157,8 @@ mod tests {
                 id: if true { "visible" } else { "hidden" }
             }
         };
-        let template = document.template.unwrap();
-        match template {
+        let inner = document.inner.unwrap();
+        match inner {
             Node::Element { attrs, .. } => {
                 let id = attrs.get("id").unwrap();
                 match id {
@@ -181,8 +181,8 @@ mod tests {
                 }
             }
         };
-        let template = document.template.unwrap();
-        match template {
+        let inner = document.inner.unwrap();
+        match inner {
             Node::Element { attrs, .. } => {
                 assert!(matches!(attrs.get("class"), Some(AttrValue::Expr(_))));
             }
@@ -198,8 +198,8 @@ mod tests {
                 { x * 2 }
             }
         };
-        let template = document.template.unwrap();
-        match template {
+        let inner = document.inner.unwrap();
+        match inner {
             Node::Element { children, .. } => {
                 assert_eq!(children.len(), 1);
                 match &children[0] {
@@ -220,8 +220,8 @@ mod tests {
                 {let a = "aa".to_string(); a.split_at(1).0.to_string()}
             }
         };
-        let template = document.template.unwrap();
-        match template {
+        let inner = document.inner.unwrap();
+        match inner {
             Node::Element {
                 tag,
                 attrs: _,
@@ -252,8 +252,8 @@ mod tests {
                 "third"
             }
         };
-        let template = document.template.unwrap();
-        match template {
+        let inner = document.inner.unwrap();
+        match inner {
             Node::Element { children, .. } => {
                 assert_eq!(children.len(), 5);
             }
@@ -273,8 +273,8 @@ mod tests {
                 }
             }
         };
-        let template = document.template.unwrap();
-        match template {
+        let inner = document.inner.unwrap();
+        match inner {
             Node::Element { children, .. } => {
                 assert_eq!(children.len(), 3);
             }
