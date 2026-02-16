@@ -7,7 +7,6 @@ use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, token,
 };
-use trs::AttrValue;
 
 #[proc_macro]
 pub fn trs(input: TokenStream) -> TokenStream {
@@ -94,7 +93,7 @@ impl Parse for TemplateNode {
 }
 
 enum AttrValueExpr {
-    Literal(AttrValue),
+    Literal(turse::AttrValue),
     Expr(proc_macro2::TokenStream),
 }
 
@@ -103,18 +102,18 @@ impl Parse for AttrValueExpr {
         if input.peek(LitStr) {
             input
                 .parse::<LitStr>()
-                .map(|lit| AttrValueExpr::Literal(AttrValue::Text(lit.value())))
+                .map(|lit| AttrValueExpr::Literal(turse::AttrValue::Text(lit.value())))
         } else if input.peek(LitInt) {
             let int: LitInt = input.parse()?;
             int.base10_parse::<i64>()
-                .map(|i| AttrValueExpr::Literal(AttrValue::Int(i)))
+                .map(|i| AttrValueExpr::Literal(turse::AttrValue::Int(i)))
         } else if input.peek(LitFloat) {
             let f: LitFloat = input.parse()?;
             f.base10_parse::<f64>()
-                .map(|f| AttrValueExpr::Literal(AttrValue::Float(f)))
+                .map(|f| AttrValueExpr::Literal(turse::AttrValue::Float(f)))
         } else if input.peek(LitBool) {
             let b: LitBool = input.parse()?;
-            Ok(AttrValueExpr::Literal(AttrValue::Bool(b.value())))
+            Ok(AttrValueExpr::Literal(turse::AttrValue::Bool(b.value())))
         } else if input.peek(token::Brace) || input.peek(Token![if]) || input.peek(Token![match]) {
             let expr: syn::Expr = input.parse()?;
             let expr_tokens = quote! { #expr };
@@ -125,7 +124,7 @@ impl Parse for AttrValueExpr {
     }
 }
 
-impl From<AttrValueExpr> for AttrValue {
+impl From<AttrValueExpr> for turse::AttrValue {
     fn from(_parser: AttrValueExpr) -> Self {
         unreachable!()
     }
@@ -137,12 +136,12 @@ impl TrsCall {
             Some(node) => {
                 let inner = node.render();
                 quote! {
-                    ::trs::Element::new(#inner)
+                    ::turse::Element::new(#inner)
                 }
             }
             None => {
                 quote! {
-                    ::trs::Element::empty()
+                    ::turse::Element::empty()
                 }
             }
         }
@@ -154,7 +153,7 @@ impl AttrValueExpr {
         match self {
             AttrValueExpr::Literal(lit) => quote! { #lit },
             AttrValueExpr::Expr(expr) => {
-                quote! { ::trs::AttrValue::Expr(move || Box::new(#expr)) }
+                quote! { ::turse::AttrValue::Expr(move || Box::new(#expr)) }
             }
         }
     }
@@ -165,7 +164,7 @@ impl TemplateNode {
         if self.text.is_some() {
             let text = self.text.as_ref().unwrap();
             return quote! {
-                ::trs::Node::Body(#text.to_string())
+                ::turse::Node::Body(#text.to_string())
             };
         }
 
@@ -174,7 +173,7 @@ impl TemplateNode {
         let expr_children: Vec<_> = self
             .expr_children
             .iter()
-            .map(|e| quote! { ::trs::Node::Body(#e.to_string()) })
+            .map(|e| quote! { ::turse::Node::Body(#e.to_string()) })
             .collect();
 
         let all_children = [children, expr_children].concat();
@@ -194,7 +193,7 @@ impl TemplateNode {
         }
 
         quote! {
-            ::trs::Node::Element {
+            ::turse::Node::Element {
                 tag: #tag.to_string(),
                 attrs: #attrs_expr,
                 children: vec![#(#all_children),*],

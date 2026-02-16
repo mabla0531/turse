@@ -146,13 +146,13 @@ impl quote::ToTokens for AttrValue {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         match self {
             AttrValue::Text(s) => {
-                quote::quote!(::trs::AttrValue::Text(#s.to_string())).to_tokens(tokens)
+                quote::quote!(::turse::AttrValue::Text(#s.to_string())).to_tokens(tokens)
             }
-            AttrValue::Float(f) => quote::quote!(::trs::AttrValue::Float(#f)).to_tokens(tokens),
-            AttrValue::Int(i) => quote::quote!(::trs::AttrValue::Int(#i)).to_tokens(tokens),
-            AttrValue::Bool(b) => quote::quote!(::trs::AttrValue::Bool(#b)).to_tokens(tokens),
+            AttrValue::Float(f) => quote::quote!(::turse::AttrValue::Float(#f)).to_tokens(tokens),
+            AttrValue::Int(i) => quote::quote!(::turse::AttrValue::Int(#i)).to_tokens(tokens),
+            AttrValue::Bool(b) => quote::quote!(::turse::AttrValue::Bool(#b)).to_tokens(tokens),
             AttrValue::Expr(_) => {
-                quote::quote!(::trs::AttrValue::Expr(fn() -> Box<dyn Display>)).to_tokens(tokens)
+                quote::quote!(::turse::AttrValue::Expr(fn() -> Box<dyn Display>)).to_tokens(tokens)
             }
         }
     }

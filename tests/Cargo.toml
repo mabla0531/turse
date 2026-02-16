@@ -7,4 +7,4 @@ publish = false
 
 [dependencies]
 turse = { path = "../turse" }
-trs-macro = { path = "../trs-macro" }
+turse-macro = { path = "../turse-macro" }
