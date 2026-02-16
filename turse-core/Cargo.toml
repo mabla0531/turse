@@ -1,0 +1,10 @@
+[package]
+name = "turse-core"
+version = "0.1.1"
+edition = "2024"
+description = "Core types for turse"
+license = "MIT"
+
+[dependencies]
+proc-macro2 = "1.0"
+quote = "1.0"

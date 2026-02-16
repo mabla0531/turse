@@ -1,6 +1,6 @@
 [package]
 name = "turse"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "Quick web-like TUI's based on Ratatui"
 license = "MIT"
@@ -8,7 +8,7 @@ license = "MIT"
 [dependencies]
 futures-util = "0.3.31"
 generational-box = "0.7.3"
-proc-macro2 = "1.0"
-quote = "1.0"
+turse-core = "0.1.1"
+turse-macro = "0.1.1"
 
 

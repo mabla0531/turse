@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use turse::{AttrValue, Node};
-    use turse_macro::trs;
+    use turse::{trs, AttrValue, Element, Node};
 
     #[test]
     fn test_trs_macro() {

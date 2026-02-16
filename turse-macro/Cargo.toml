@@ -1,6 +1,6 @@
 [package]
 name = "turse-macro"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "trs! macro for turse"
 license = "MIT"
@@ -12,4 +12,4 @@ proc-macro = true
 proc-macro2 = "1.0.106"
 quote = "1.0.44"
 syn = "2.0.115"
-turse = "0.1.0"
+turse-core = "0.1.1"

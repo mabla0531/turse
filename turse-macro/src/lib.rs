@@ -3,9 +3,8 @@ use std::collections::HashMap;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
-    Ident, LitBool, LitFloat, LitInt, LitStr, Result, Token,
     parse::{Parse, ParseStream},
-    parse_macro_input, token,
+    parse_macro_input, token, Ident, LitBool, LitFloat, LitInt, LitStr, Result, Token,
 };
 
 #[proc_macro]
@@ -93,7 +92,7 @@ impl Parse for TemplateNode {
 }
 
 enum AttrValueExpr {
-    Literal(turse::AttrValue),
+    Literal(turse_core::AttrValue),
     Expr(proc_macro2::TokenStream),
 }
 
@@ -102,18 +101,20 @@ impl Parse for AttrValueExpr {
         if input.peek(LitStr) {
             input
                 .parse::<LitStr>()
-                .map(|lit| AttrValueExpr::Literal(turse::AttrValue::Text(lit.value())))
+                .map(|lit| AttrValueExpr::Literal(turse_core::AttrValue::Text(lit.value())))
         } else if input.peek(LitInt) {
             let int: LitInt = input.parse()?;
             int.base10_parse::<i64>()
-                .map(|i| AttrValueExpr::Literal(turse::AttrValue::Int(i)))
+                .map(|i| AttrValueExpr::Literal(turse_core::AttrValue::Int(i)))
         } else if input.peek(LitFloat) {
             let f: LitFloat = input.parse()?;
             f.base10_parse::<f64>()
-                .map(|f| AttrValueExpr::Literal(turse::AttrValue::Float(f)))
+                .map(|f| AttrValueExpr::Literal(turse_core::AttrValue::Float(f)))
         } else if input.peek(LitBool) {
             let b: LitBool = input.parse()?;
-            Ok(AttrValueExpr::Literal(turse::AttrValue::Bool(b.value())))
+            Ok(AttrValueExpr::Literal(turse_core::AttrValue::Bool(
+                b.value(),
+            )))
         } else if input.peek(token::Brace) || input.peek(Token![if]) || input.peek(Token![match]) {
             let expr: syn::Expr = input.parse()?;
             let expr_tokens = quote! { #expr };
@@ -124,7 +125,7 @@ impl Parse for AttrValueExpr {
     }
 }
 
-impl From<AttrValueExpr> for turse::AttrValue {
+impl From<AttrValueExpr> for turse_core::AttrValue {
     fn from(_parser: AttrValueExpr) -> Self {
         unreachable!()
     }
@@ -136,12 +137,12 @@ impl TrsCall {
             Some(node) => {
                 let inner = node.render();
                 quote! {
-                    ::turse::Element::new(#inner)
+                    Element::new(#inner)
                 }
             }
             None => {
                 quote! {
-                    ::turse::Element::empty()
+                    Element::empty()
                 }
             }
         }
@@ -153,7 +154,7 @@ impl AttrValueExpr {
         match self {
             AttrValueExpr::Literal(lit) => quote! { #lit },
             AttrValueExpr::Expr(expr) => {
-                quote! { ::turse::AttrValue::Expr(move || Box::new(#expr)) }
+                quote! { AttrValue::Expr(move || Box::new(#expr)) }
             }
         }
     }
@@ -164,7 +165,7 @@ impl TemplateNode {
         if self.text.is_some() {
             let text = self.text.as_ref().unwrap();
             return quote! {
-                ::turse::Node::Body(#text.to_string())
+                Node::Body(#text.to_string())
             };
         }
 
@@ -173,7 +174,7 @@ impl TemplateNode {
         let expr_children: Vec<_> = self
             .expr_children
             .iter()
-            .map(|e| quote! { ::turse::Node::Body(#e.to_string()) })
+            .map(|e| quote! { Node::Body(#e.to_string()) })
             .collect();
 
         let all_children = [children, expr_children].concat();
@@ -193,7 +194,7 @@ impl TemplateNode {
         }
 
         quote! {
-            ::turse::Node::Element {
+            Node::Element {
                 tag: #tag.to_string(),
                 attrs: #attrs_expr,
                 children: vec![#(#all_children),*],
