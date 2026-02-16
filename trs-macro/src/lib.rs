@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
+    Ident, LitBool, LitFloat, LitInt, LitStr, Result, Token,
     parse::{Parse, ParseStream},
-    parse_macro_input, token, Ident, LitBool, LitFloat, LitInt, LitStr, Result, Token,
+    parse_macro_input, token,
 };
 use trs::AttrValue;
 
@@ -16,7 +17,7 @@ pub fn trs(input: TokenStream) -> TokenStream {
 }
 
 struct TrsCall {
-    root: Option<Node>,
+    root: Option<TemplateNode>,
 }
 
 impl Parse for TrsCall {
@@ -31,20 +32,20 @@ impl Parse for TrsCall {
     }
 }
 
-struct Node {
+struct TemplateNode {
     tag: String,
     attrs: HashMap<String, AttrValueExpr>,
-    children: Vec<Node>,
+    children: Vec<TemplateNode>,
     text: Option<String>,
     expr_children: Vec<proc_macro2::TokenStream>,
 }
 
 const VALID_ELEMENTS: [&str; 4] = ["block", "text", "input", "dropdown"];
 
-impl Parse for Node {
+impl Parse for TemplateNode {
     fn parse(input: ParseStream) -> Result<Self> {
         if input.peek(LitStr) {
-            return Ok(Node {
+            return Ok(TemplateNode {
                 tag: String::new(),
                 attrs: HashMap::new(),
                 children: Vec::new(),
@@ -82,7 +83,7 @@ impl Parse for Node {
             }
         }
 
-        Ok(Node {
+        Ok(TemplateNode {
             tag: name_str,
             attrs,
             children,
@@ -153,18 +154,18 @@ impl AttrValueExpr {
         match self {
             AttrValueExpr::Literal(lit) => quote! { #lit },
             AttrValueExpr::Expr(expr) => {
-                quote! { ::trs::AttrValue::Reactive(std::rc::Rc::new(move || ::trs::IntoAttrValue::into_attr_value(#expr))) }
+                quote! { ::trs::AttrValue::Expr(move || Box::new(#expr)) }
             }
         }
     }
 }
 
-impl Node {
+impl TemplateNode {
     fn render(&self) -> proc_macro2::TokenStream {
         if self.text.is_some() {
             let text = self.text.as_ref().unwrap();
             return quote! {
-                ::trs::TemplateNode::Literal(#text.to_string())
+                ::trs::Node::Body(#text.to_string())
             };
         }
 
@@ -173,7 +174,7 @@ impl Node {
         let expr_children: Vec<_> = self
             .expr_children
             .iter()
-            .map(|e| quote! { ::trs::TemplateNode::Child(std::boxed::Box::new(#e) as std::boxed::Box<dyn std::fmt::Display>) })
+            .map(|e| quote! { ::trs::Node::Body(#e.to_string()) })
             .collect();
 
         let all_children = [children, expr_children].concat();
@@ -193,7 +194,7 @@ impl Node {
         }
 
         quote! {
-            ::trs::TemplateNode::Element {
+            ::trs::Node::Element {
                 tag: #tag.to_string(),
                 attrs: #attrs_expr,
                 children: vec![#(#all_children),*],

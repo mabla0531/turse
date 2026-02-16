@@ -1,63 +1,58 @@
-use std::collections::HashMap;
-use std::fmt::Display;
-use std::rc::Rc;
-
-pub type Node = TemplateNode;
+use std::{collections::HashMap, fmt::Display};
 
 pub trait TurseElement {
     const TAG_NAME: &'static str;
 }
 
-pub enum TemplateNode {
+pub enum Node {
     Element {
         tag: String,
         attrs: HashMap<String, AttrValue>,
-        children: Vec<TemplateNode>,
+        children: Vec<Node>,
     },
-    Literal(String),
-    Child(Box<dyn Display>),
+    Body(String),
 }
 
-pub trait IntoTemplateNode {
-    fn into_template_node(self) -> TemplateNode;
+pub trait IntoNode {
+    fn into_template_node(self) -> Node;
 }
 
-impl IntoTemplateNode for String {
-    fn into_template_node(self) -> TemplateNode {
-        TemplateNode::Literal(self)
+impl IntoNode for String {
+    fn into_template_node(self) -> Node {
+        Node::Body(self)
     }
 }
 
-impl IntoTemplateNode for &str {
-    fn into_template_node(self) -> TemplateNode {
-        TemplateNode::Literal(self.to_string())
+impl IntoNode for &str {
+    fn into_template_node(self) -> Node {
+        Node::Body(self.to_string())
     }
 }
 
-impl IntoTemplateNode for TemplateNode {
-    fn into_template_node(self) -> TemplateNode {
+impl IntoNode for Node {
+    fn into_template_node(self) -> Node {
         self
     }
 }
 
-impl From<String> for TemplateNode {
+impl From<String> for Node {
     fn from(s: String) -> Self {
-        TemplateNode::Literal(s)
+        Node::Body(s)
     }
 }
 
-impl From<&str> for TemplateNode {
+impl From<&str> for Node {
     fn from(s: &str) -> Self {
-        TemplateNode::Literal(s.to_string())
+        Node::Body(s.to_string())
     }
 }
 
-impl<T> From<Vec<T>> for TemplateNode
+impl<T> From<Vec<T>> for Node
 where
-    T: IntoTemplateNode,
+    T: IntoNode,
 {
     fn from(vec: Vec<T>) -> Self {
-        TemplateNode::Element {
+        Node::Element {
             tag: "fragment".to_string(),
             attrs: HashMap::new(),
             children: vec.into_iter().map(|t| t.into_template_node()).collect(),
@@ -66,10 +61,10 @@ where
 }
 
 #[cfg(debug_assertions)]
-impl std::fmt::Debug for TemplateNode {
+impl std::fmt::Debug for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TemplateNode::Element {
+            Node::Element {
                 tag,
                 attrs,
                 children,
@@ -79,97 +74,68 @@ impl std::fmt::Debug for TemplateNode {
                 .field("attrs", attrs)
                 .field("children", children)
                 .finish(),
-            TemplateNode::Literal(s) => f.debug_tuple("Literal").field(s).finish(),
-            TemplateNode::Child(_) => f.debug_tuple("Child").finish(),
+            Node::Body(s) => f.debug_tuple("Body").field(&s.to_string()).finish(),
         }
     }
 }
 
-impl Clone for TemplateNode {
+impl Clone for Node {
     fn clone(&self) -> Self {
         match self {
-            TemplateNode::Element {
+            Node::Element {
                 tag,
                 attrs,
                 children,
-            } => TemplateNode::Element {
+            } => Node::Element {
                 tag: tag.clone(),
                 attrs: attrs.clone(),
                 children: children.clone(),
             },
-            TemplateNode::Literal(s) => TemplateNode::Literal(s.clone()),
-            TemplateNode::Child(_) => {
-                unreachable!("Cannot clone Child closures")
-            }
+            Node::Body(s) => Node::Body(s.clone()),
         }
     }
 }
 
 #[cfg(debug_assertions)]
-impl PartialEq for TemplateNode {
+impl PartialEq for Node {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (
-                TemplateNode::Element {
+                Node::Element {
                     tag: t1,
                     attrs: a1,
                     children: c1,
                 },
-                TemplateNode::Element {
+                Node::Element {
                     tag: t2,
                     attrs: a2,
                     children: c2,
                 },
             ) => t1 == t2 && a1 == a2 && c1 == c2,
-            (TemplateNode::Literal(s1), TemplateNode::Literal(s2)) => s1 == s2,
+            (Node::Body(s1), Node::Body(s2)) => s1 == s2,
             _ => false,
         }
     }
 }
 
+#[cfg_attr(debug_assertions, derive(Debug))]
+#[derive(Clone)]
 pub enum AttrValue {
     Text(String),
     Float(f64),
     Int(i64),
     Bool(bool),
-    Reactive(Rc<dyn Fn() -> AttrValue>),
-}
-
-#[cfg(debug_assertions)]
-impl std::fmt::Debug for AttrValue {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AttrValue::Text(s) => f.debug_tuple("Text").field(s).finish(),
-            AttrValue::Float(fl) => f.debug_tuple("Float").field(fl).finish(),
-            AttrValue::Int(i) => f.debug_tuple("Int").field(i).finish(),
-            AttrValue::Bool(b) => f.debug_tuple("Bool").field(b).finish(),
-            AttrValue::Reactive(_) => f.debug_tuple("Reactive").finish(),
-        }
-    }
-}
-
-impl Clone for AttrValue {
-    fn clone(&self) -> Self {
-        match self {
-            AttrValue::Text(s) => AttrValue::Text(s.clone()),
-            AttrValue::Float(fl) => AttrValue::Float(*fl),
-            AttrValue::Int(i) => AttrValue::Int(*i),
-            AttrValue::Bool(b) => AttrValue::Bool(*b),
-            AttrValue::Reactive(_) => {
-                unreachable!("Cannot clone Reactive closures")
-            }
-        }
-    }
+    Expr(fn() -> Box<dyn Display>),
 }
 
 #[cfg(debug_assertions)]
 impl PartialEq for AttrValue {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (AttrValue::Text(s1), AttrValue::Text(s2)) => s1 == s2,
-            (AttrValue::Float(f1), AttrValue::Float(f2)) => f1 == f2,
-            (AttrValue::Int(i1), AttrValue::Int(i2)) => i1 == i2,
-            (AttrValue::Bool(b1), AttrValue::Bool(b2)) => b1 == b2,
+            (Self::Text(lv), Self::Text(rv)) => lv == rv,
+            (Self::Float(lv), Self::Float(rv)) => lv == rv,
+            (Self::Int(lv), Self::Int(rv)) => lv == rv,
+            (Self::Bool(lv), Self::Bool(rv)) => lv == rv,
             _ => false,
         }
     }
@@ -179,19 +145,13 @@ impl quote::ToTokens for AttrValue {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         match self {
             AttrValue::Text(s) => {
-                quote::quote!(::trs::AttrValue::Text(#s.to_string())).to_tokens(tokens);
+                quote::quote!(::trs::AttrValue::Text(#s.to_string())).to_tokens(tokens)
             }
-            AttrValue::Float(f) => {
-                quote::quote!(::trs::AttrValue::Float(#f)).to_tokens(tokens);
-            }
-            AttrValue::Int(i) => {
-                quote::quote!(::trs::AttrValue::Int(#i)).to_tokens(tokens);
-            }
-            AttrValue::Bool(b) => {
-                quote::quote!(::trs::AttrValue::Bool(#b)).to_tokens(tokens);
-            }
-            AttrValue::Reactive(_) => {
-                unreachable!("Reactive AttrValue should not use ToTokens - handled in macro")
+            AttrValue::Float(f) => quote::quote!(::trs::AttrValue::Float(#f)).to_tokens(tokens),
+            AttrValue::Int(i) => quote::quote!(::trs::AttrValue::Int(#i)).to_tokens(tokens),
+            AttrValue::Bool(b) => quote::quote!(::trs::AttrValue::Bool(#b)).to_tokens(tokens),
+            AttrValue::Expr(_) => {
+                quote::quote!(::trs::AttrValue::Expr(fn() -> Box<dyn Display>)).to_tokens(tokens)
             }
         }
     }
@@ -297,11 +257,11 @@ impl From<&str> for AttrValue {
 #[cfg_attr(debug_assertions, derive(Debug, PartialEq))]
 #[derive(Clone)]
 pub struct VNode {
-    pub template: Option<TemplateNode>,
+    pub template: Option<Node>,
 }
 
 impl VNode {
-    pub fn new(template: TemplateNode) -> Self {
+    pub fn new(template: Node) -> Self {
         Self {
             template: Some(template),
         }
