@@ -3,7 +3,7 @@ mod tests {
     use std::collections::HashMap;
     use std::rc::Rc;
 
-    use trs::{AttrValue, TemplateNode};
+    use trs::{AttrValue, Node};
     use trs_macro::trs;
     #[test]
     fn test_trs_macro() {
@@ -28,7 +28,7 @@ mod tests {
 
         let template = document.template.unwrap();
         match template {
-            TemplateNode::Element {
+            Node::Element {
                 tag,
                 attrs: got_attrs,
                 children,
@@ -59,7 +59,7 @@ mod tests {
         };
         let template = document.template.unwrap();
         match template {
-            TemplateNode::Element {
+            Node::Element {
                 tag,
                 attrs,
                 children: _,
@@ -82,12 +82,12 @@ mod tests {
     fn test_expr_child() {
         let document = trs! {
             block {
-                {"hello"}
+                {2}
             }
         };
         let template = document.template.unwrap();
         match template {
-            TemplateNode::Element {
+            Node::Element {
                 tag,
                 attrs: _,
                 children,
@@ -95,11 +95,10 @@ mod tests {
                 assert_eq!(tag, "block");
                 assert_eq!(children.len(), 1);
                 match &children[0] {
-                    TemplateNode::ReactiveChild(f) => {
-                        let result = f();
-                        assert_eq!(result, TemplateNode::Literal("hello".to_string()));
+                    Node::Child(d) => {
+                        assert_eq!(d.to_string(), "2");
                     }
-                    _ => panic!("child should be ReactiveChild"),
+                    _ => panic!("child should be Child"),
                 }
             }
             _ => panic!("expected Element"),
@@ -115,7 +114,7 @@ mod tests {
         };
         let template = document.template.unwrap();
         match template {
-            TemplateNode::Element {
+            Node::Element {
                 tag,
                 attrs: _,
                 children,
@@ -123,11 +122,11 @@ mod tests {
                 assert_eq!(tag, "block");
                 assert_eq!(children.len(), 1);
                 match &children[0] {
-                    TemplateNode::ReactiveChild(f) => {
-                        let result = f();
-                        assert_eq!(result, TemplateNode::Literal("a".to_string()));
+                    Node::Child(d) => {
+                        let result = d.to_string();
+                        assert_eq!(result, "a");
                     }
-                    _ => panic!("child should be ReactiveChild"),
+                    _ => panic!("child should be Child"),
                 }
             }
             _ => panic!("expected Element"),

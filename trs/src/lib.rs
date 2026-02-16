@@ -1,5 +1,8 @@
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::rc::Rc;
+
+pub type Node = TemplateNode;
 
 pub trait TurseElement {
     const TAG_NAME: &'static str;
@@ -12,7 +15,7 @@ pub enum TemplateNode {
         children: Vec<TemplateNode>,
     },
     Literal(String),
-    ReactiveChild(Rc<dyn Fn() -> TemplateNode>),
+    Child(Box<dyn Display>),
 }
 
 pub trait IntoTemplateNode {
@@ -62,6 +65,7 @@ where
     }
 }
 
+#[cfg(debug_assertions)]
 impl std::fmt::Debug for TemplateNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -76,7 +80,7 @@ impl std::fmt::Debug for TemplateNode {
                 .field("children", children)
                 .finish(),
             TemplateNode::Literal(s) => f.debug_tuple("Literal").field(s).finish(),
-            TemplateNode::ReactiveChild(_) => f.debug_tuple("ReactiveChild").finish(),
+            TemplateNode::Child(_) => f.debug_tuple("Child").finish(),
         }
     }
 }
@@ -94,13 +98,14 @@ impl Clone for TemplateNode {
                 children: children.clone(),
             },
             TemplateNode::Literal(s) => TemplateNode::Literal(s.clone()),
-            TemplateNode::ReactiveChild(_) => {
-                unreachable!("Cannot clone ReactiveChild closures")
+            TemplateNode::Child(_) => {
+                unreachable!("Cannot clone Child closures")
             }
         }
     }
 }
 
+#[cfg(debug_assertions)]
 impl PartialEq for TemplateNode {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -130,6 +135,7 @@ pub enum AttrValue {
     Reactive(Rc<dyn Fn() -> AttrValue>),
 }
 
+#[cfg(debug_assertions)]
 impl std::fmt::Debug for AttrValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -156,6 +162,7 @@ impl Clone for AttrValue {
     }
 }
 
+#[cfg(debug_assertions)]
 impl PartialEq for AttrValue {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -287,7 +294,8 @@ impl From<&str> for AttrValue {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(debug_assertions, derive(Debug, PartialEq))]
+#[derive(Clone)]
 pub struct VNode {
     pub template: Option<TemplateNode>,
 }

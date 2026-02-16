@@ -39,7 +39,7 @@ struct Node {
     expr_children: Vec<proc_macro2::TokenStream>,
 }
 
-const VALID_ELEMENTS: [&str; 2] = ["block", "text"];
+const VALID_ELEMENTS: [&str; 4] = ["block", "text", "input", "dropdown"];
 
 impl Parse for Node {
     fn parse(input: ParseStream) -> Result<Self> {
@@ -173,7 +173,7 @@ impl Node {
         let expr_children: Vec<_> = self
             .expr_children
             .iter()
-            .map(|e| quote! { ::trs::TemplateNode::ReactiveChild(std::rc::Rc::new(move || -> ::trs::TemplateNode { #e.into() })) })
+            .map(|e| quote! { ::trs::TemplateNode::Child(std::boxed::Box::new(#e) as std::boxed::Box<dyn std::fmt::Display>) })
             .collect();
 
         let all_children = [children, expr_children].concat();
