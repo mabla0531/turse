@@ -2,6 +2,8 @@
 name = "turse"
 version = "0.1.0"
 edition = "2024"
+description = "Quick web-like TUI's based on Ratatui"
+license = "MIT"
 
 [dependencies]
 futures-util = "0.3.31"
